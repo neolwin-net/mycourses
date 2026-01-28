@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Tracker</title>
+<style>
+:root {
+  --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#9ca3af;
+  --accent:#38bdf8; --learned:#22c55e; --learning:#facc15; --not:#ef4444;
+}
+body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); }
+header { padding:1rem; text-align:center; font-weight:bold; font-size:1.4rem; }
+main { max-width:900px; margin:auto; padding:1rem; }
+.add { display:flex; gap:.5rem; margin-bottom:1rem; }
+input, select, button { background:var(--card); color:var(--text); border:1px solid #1f2933; padding:.6rem; border-radius:.5rem; }
+button { cursor:pointer; }
+.course { background:var(--card); padding:1rem; border-radius:.75rem; margin-bottom:.75rem; }
+.status.learned { color:var(--learned); }
+.status.learning { color:var(--learning); }
+.status.not-learned { color:var(--not); }
+.topics .done { text-decoration:line-through; color:var(--muted); }
+.progress { background:#1f2933; border-radius:.5rem; height:6px; margin-top:.5rem; }
+.progress-bar { height:6px; border-radius:.5px; }
+.tabs { display:flex; gap:.5rem; margin-bottom:1rem; }
+.tabs button { padding:.5rem 1rem; border:none; border-radius:.5rem; background:#1f2933; color:var(--text); }
+.tabs button.active { background:var(--accent); color:#111827; font-weight:bold; }
+.percentage { margin-left:10px; font-weight:bold; }
+.summary { background:#1f2933; padding:1rem; border-radius:.75rem; margin-bottom:1rem; display:flex; justify-content:space-around; }
+.summary div { text-align:center; }
+#modeToggle { margin-bottom:1rem; padding:.5rem 1rem; border-radius:.5px; border:none; background:var(--accent); color:#111827; cursor:pointer; }
+.topic-header { display:flex; justify-content:space-between; cursor:pointer; margin-top:0.5rem; margin-bottom:0.5rem; }
+.topic-section { margin-top:0.5rem; }
+.hidden { display:none; }
+</style>
+</head>
+<body>
+<header>📚 Sayar Lwin's Learning Tracker Site</header>
+<main>
+  <div class="add">
+    <input id="courseName" placeholder="Course name">
+    <select id="courseStatus">
+      <option value="not-learned">Need to Learn</option>
+      <option value="learning">Learning</option>
+      <option value="learned">Learned</option>
+    </select>
+    <button id="addCourseBtn">Add Course</button>
+  </div>
+
+  <button id="modeToggle">Switch to Read-Only Mode</button>
+
+  <div class="tabs">
+    <button data-tab="all" class="active">All Courses</button>
+    <button data-tab="learning">Learning</button>
+    <button data-tab="not-learned">Need to Learn</button>
+    <button data-tab="learned">Learned</button>
+  </div>
+
+  <div class="summary" id="summary">
+    <div>Total<br><span id="total">0</span></div>
+    <div>Learned<br><span id="learnedCount">0</span></div>
+    <div>Learning<br><span id="learningCount">0</span></div>
+    <div>Need to Learn<br><span id="notCount">0</span></div>
+  </div>
+
+  <div id="courses"></div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const courseInput = document.getElementById('courseName');
+  const statusSelect = document.getElementById('courseStatus');
+  const coursesEl = document.getElementById('courses');
+  const addBtn = document.getElementById('addCourseBtn');
+  const tabBtns = document.querySelectorAll('.tabs button');
+  const summaryEls = {
+    total: document.getElementById('total'),
+    learned: document.getElementById('learnedCount'),
+    learning: document.getElementById('learningCount'),
+    not: document.getElementById('notCount')
+  };
+  const modeToggle = document.getElementById('modeToggle');
+
+  let courses = JSON.parse(localStorage.getItem('courses')) || [];
+  let currentTab = 'all';
+  let isReadOnly = false;
+
+  function save() { localStorage.setItem('courses', JSON.stringify(courses)); }
+
+  function progress(course) {
+    if(course.status==='not-learned') return 0;
+    if(course.status==='learned') return 100;
+    if(!course.topics || !course.topics.length) return 0;
+    return Math.round(course.topics.filter(t=>t.done).length / course.topics.length * 100);
+  }
+
+  function progressColor(course, percent){
+    if(course.status==='not-learned') return 'var(--not)';
+    if(course.status==='learned') return 'var(--learned)';
+    return 'var(--learning)';
+  }
+
+  function updateSummary() {
+    const total = courses.length;
+    const learned = courses.filter(c=>c.status==='learned').length;
+    const learning = courses.filter(c=>c.status==='learning').length;
+    const notLearned = courses.filter(c=>c.status==='not-learned').length;
+    summaryEls.total.textContent = total;
+    summaryEls.learned.textContent = learned;
+    summaryEls.learning.textContent = learning;
+    summaryEls.not.textContent = notLearned;
+  }
+
+  function render() {
+    coursesEl.innerHTML = '';
+    courses.forEach((c,i)=>{
+      if(currentTab!=='all' && c.status!==currentTab) return;
+
+      const div = document.createElement('div');
+      div.className='course';
+      const percent = progress(c);
+      const color = progressColor(c, percent);
+
+      let html = `<strong>${c.name}</strong> - `;
+      html += `<select class='status' data-ci='${i}' ${isReadOnly?'disabled':''}>
+        <option value="not-learned" ${c.status==='not-learned'?'selected':''}>Need to Learn</option>
+        <option value="learning" ${c.status==='learning'?'selected':''}>Learning</option>
+        <option value="learned" ${c.status==='learned'?'selected':''}>Learned</option>
+      </select>`;
+      html += ` <span class="percentage">${percent}% completed</span>`;
+      html += ` <button class='delete-course' data-del='${i}' ${isReadOnly?'disabled':''}>✖</button>`;
+      html += `<div class='progress'><div class='progress-bar' style='width:${percent}%;background:${color}'></div></div>`;
+
+      if(c.status==='learning'){
+        html += `<div class="topic-header">
+          <span>Topics</span>
+          <button class="toggle-topics" data-ci="${i}" ${isReadOnly?'disabled':''}>▼</button>
+        </div>`;
+        html += `<div class="topic-section" data-ci="${i}">`;
+        (c.topics||[]).forEach((t,ti)=>{
+          html += `<div class='${t.done?'done':''}'>
+            <input type='checkbox' data-ci='${i}' data-ti='${ti}' ${t.done?'checked':''} ${isReadOnly?'disabled':''}> ${t.name}
+          </div>`;
+        });
+        html += `<input data-topic='${i}' placeholder='New topic' ${isReadOnly?'disabled':''}> 
+                 <button class='add-topic' data-add-topic='${i}' ${isReadOnly?'disabled':''}>Add topic</button></div>`;
+      }
+
+      div.innerHTML=html;
+      coursesEl.appendChild(div);
+    });
+    bindEvents();
+    updateSummary();
+  }
+
+  function bindEvents(){
+    if(!isReadOnly){
+      document.querySelectorAll('.delete-course').forEach(btn=>{
+        btn.onclick = e=>{ courses.splice(e.target.dataset.del,1); save(); render(); };
+      });
+
+      document.querySelectorAll('.add-topic').forEach(btn=>{
+        btn.onclick=e=>{
+          const ci=e.target.dataset.addTopic;
+          const input=document.querySelector(`[data-topic="${ci}"]`);
+          if(!input.value.trim()) return;
+          courses[ci].topics = courses[ci].topics||[];
+          courses[ci].topics.push({name:input.value, done:false});
+          input.value=''; save(); render();
+        };
+      });
+
+      document.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+        cb.onchange=e=>{
+          const {ci,ti}=e.target.dataset;
+          courses[ci].topics[ti].done=e.target.checked; save(); render();
+        };
+      });
+
+      document.querySelectorAll('.status').forEach(sel=>{
+        sel.onchange=e=>{
+          const ci=e.target.dataset.ci;
+          courses[ci].status=e.target.value; save(); render();
+        };
+      });
+    }
+
+    // Collapsible topic sections
+    document.querySelectorAll('.toggle-topics').forEach(btn=>{
+      btn.onclick=e=>{
+        const ci=e.target.dataset.ci;
+        const section=document.querySelector(`.topic-section[data-ci="${ci}"]`);
+        if(section.classList.contains('hidden')){
+          section.classList.remove('hidden');
+          e.target.textContent='▼';
+        } else {
+          section.classList.add('hidden');
+          e.target.textContent='▲';
+        }
+      };
+    });
+  }
+
+  addBtn.onclick=()=>{
+    if(isReadOnly) return;
+    const name=courseInput.value.trim();
+    if(!name) return;
+    courses.push({name,status:statusSelect.value,topics:[]});
+    courseInput.value=''; save(); render();
+  };
+
+  tabBtns.forEach(btn=>{
+    btn.onclick=e=>{
+      tabBtns.forEach(b=>b.classList.remove('active'));
+      e.target.classList.add('active');
+      currentTab=e.target.dataset.tab;
+      render();
+    };
+  });
+
+  modeToggle.onclick=()=>{
+    isReadOnly = !isReadOnly;
+    modeToggle.textContent = isReadOnly ? 'Switch to Write Mode' : 'Switch to Read-Only Mode';
+    render();
+  };
+
+  render();
+});
+</script>
+</body>
+</html>
