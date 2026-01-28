@@ -13,9 +13,10 @@ body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:v
 header { padding:1rem; text-align:center; font-weight:bold; font-size:1.4rem; }
 main { max-width:900px; margin:auto; padding:1rem; }
 .add { display:flex; gap:.5rem; margin-bottom:1rem; }
-input, select, button { background:var(--card); color:var(--text); border:1px solid #1f2933; padding:.6rem; border-radius:.5rem; }
+input, select, button { background:var(--card); color:var(--text); border:1px solid #1f2933; padding:.5rem .6rem; border-radius:.5rem; }
 button { cursor:pointer; }
 .course { background:var(--card); padding:1rem; border-radius:.75rem; margin-bottom:.75rem; }
+.delete-course, .delete-topic, .toggle-topics, .add-topic { font-size:0.8rem; padding:0.2rem 0.5rem; margin-left:5px; }
 .status.learned { color:var(--learned); }
 .status.learning { color:var(--learning); }
 .status.not-learned { color:var(--not); }
@@ -28,13 +29,12 @@ button { cursor:pointer; }
 .percentage { margin-left:10px; font-weight:bold; }
 .summary { background:#1f2933; padding:1rem; border-radius:.75rem; margin-bottom:1rem; display:flex; justify-content:space-around; }
 .summary div { text-align:center; }
-#modeToggle, #exportBtn, label { margin-bottom:1rem; padding:.5rem 1rem; border-radius:.5px; border:none; background:var(--accent); color:#111827; cursor:pointer; }
-label input { display:none; }
-.topic-header { display:flex; justify-content:space-between; cursor:pointer; margin-top:0.5rem; margin-bottom:0.5rem; }
+.tools { display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+.tools button, .tools label { padding:.5rem 1rem; font-size:0.9rem; border-radius:.5rem; border:none; background:var(--accent); color:#111827; cursor:pointer; }
+.topic-header { display:flex; justify-content:space-between; align-items:center; cursor:pointer; margin-top:0.5rem; margin-bottom:0.5rem; }
 .topic-section { margin-top:0.5rem; }
 .hidden { display:none; }
-.delete-course { background:var(--not); color:#fff; border:none; border-radius:.25rem; cursor:pointer; margin-left:.5rem; }
-.topic-delete { background:var(--not); color:#fff; border:none; border-radius:.25rem; cursor:pointer; margin-left:.5px; }
+.topic-item { display:flex; align-items:center; gap:5px; margin-bottom:3px; }
 </style>
 </head>
 <body>
@@ -53,8 +53,9 @@ label input { display:none; }
   <div class="tools">
     <button id="modeToggle">Switch to Read-Only Mode</button>
     <button id="exportBtn">Export JSON</button>
-    <label>Import JSON
-      <input type="file" id="importInput" accept="application/json">
+    <label>
+      Import JSON
+      <input type="file" id="importInput" accept="application/json" hidden>
     </label>
   </div>
 
@@ -82,23 +83,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const coursesEl = document.getElementById('courses');
   const addBtn = document.getElementById('addCourseBtn');
   const tabBtns = document.querySelectorAll('.tabs button');
-  const modeToggle = document.getElementById('modeToggle');
-  const exportBtn = document.getElementById('exportBtn');
-  const importInput = document.getElementById('importInput');
   const summaryEls = {
     total: document.getElementById('total'),
     learned: document.getElementById('learnedCount'),
     learning: document.getElementById('learningCount'),
     not: document.getElementById('notCount')
   };
+  const modeToggle = document.getElementById('modeToggle');
+  const exportBtn = document.getElementById('exportBtn');
+  const importInput = document.getElementById('importInput');
 
   let courses = JSON.parse(localStorage.getItem('courses')) || [];
   let currentTab = 'all';
   let isReadOnly = false;
 
-  const save = ()=>localStorage.setItem('courses', JSON.stringify(courses));
+  function save() { localStorage.setItem('courses', JSON.stringify(courses)); }
 
-  function progress(course){
+  function progress(course) {
     if(course.status==='not-learned') return 0;
     if(course.status==='learned') return 100;
     if(!course.topics || !course.topics.length) return 0;
@@ -111,18 +112,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'var(--learning)';
   }
 
-  function updateSummary(){
+  function updateSummary() {
     summaryEls.total.textContent = courses.length;
     summaryEls.learned.textContent = courses.filter(c=>c.status==='learned').length;
     summaryEls.learning.textContent = courses.filter(c=>c.status==='learning').length;
     summaryEls.not.textContent = courses.filter(c=>c.status==='not-learned').length;
   }
 
-  function render(){
-    coursesEl.innerHTML='';
+  function render() {
+    coursesEl.innerHTML = '';
     courses.forEach((c,i)=>{
       if(currentTab!=='all' && c.status!==currentTab) return;
       const percent = progress(c);
+      const color = progressColor(c);
+
       const div = document.createElement('div');
       div.className='course';
 
@@ -134,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </select>`;
       html += ` <span class="percentage">${percent}% completed</span>`;
       html += ` <button class='delete-course' data-del='${i}' ${isReadOnly?'disabled':''}>✖</button>`;
-      html += `<div class='progress'><div class='progress-bar' style='width:${percent}%;background:${progressColor(c)}'></div></div>`;
+      html += `<div class='progress'><div class='progress-bar' style='width:${percent}%;background:${color}'></div></div>`;
 
       if(c.status==='learning'){
         html += `<div class="topic-header">
@@ -143,98 +146,117 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`;
         html += `<div class="topic-section" data-ci="${i}">`;
         (c.topics||[]).forEach((t,ti)=>{
-          html += `<div class='${t.done?'done':''}'>
-            <input type='checkbox' data-ci='${i}' data-ti='${ti}' ${t.done?'checked':''} ${isReadOnly?'disabled':''}> ${t.name}
-            <button class='topic-delete' data-ci='${i}' data-ti='${ti}' ${isReadOnly?'disabled':''}>✖</button>
+          html += `<div class="topic-item ${t.done?'done':''}">
+            <input type='checkbox' data-ci='${i}' data-ti='${ti}' ${t.done?'checked':''} ${isReadOnly?'disabled':''}>
+            ${t.name} <button class="delete-topic" data-ci='${i}' data-ti='${ti}' ${isReadOnly?'disabled':''}>✖</button>
           </div>`;
         });
         html += `<input data-topic='${i}' placeholder='New topic' ${isReadOnly?'disabled':''}>
                  <button class='add-topic' data-add-topic='${i}' ${isReadOnly?'disabled':''}>Add topic</button></div>`;
       }
 
-      div.innerHTML = html;
+      div.innerHTML=html;
       coursesEl.appendChild(div);
     });
+
     bindEvents();
     updateSummary();
   }
 
   function bindEvents(){
     if(!isReadOnly){
-      document.querySelectorAll('.delete-course').forEach(btn=>btn.onclick=e=>{
-        courses.splice(e.target.dataset.del,1); save(); render();
+      document.querySelectorAll('.delete-course').forEach(btn=>{
+        btn.onclick=e=>{ courses.splice(e.target.dataset.del,1); save(); render(); };
       });
 
-      document.querySelectorAll('.add-topic').forEach(btn=>btn.onclick=e=>{
-        const ci = e.target.dataset.addTopic;
-        const input = document.querySelector(`[data-topic="${ci}"]`);
-        if(!input.value.trim()) return;
-        courses[ci].topics = courses[ci].topics||[];
-        courses[ci].topics.push({name:input.value, done:false});
-        input.value=''; save(); render();
+      document.querySelectorAll('.delete-topic').forEach(btn=>{
+        btn.onclick=e=>{
+          const {ci,ti}=e.target.dataset;
+          courses[ci].topics.splice(ti,1); save(); render();
+        };
       });
 
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.onchange=e=>{
-        const {ci,ti}=e.target.dataset;
-        courses[ci].topics[ti].done=e.target.checked; save(); render();
+      document.querySelectorAll('.add-topic').forEach(btn=>{
+        btn.onclick=e=>{
+          const ci=e.target.dataset.addTopic;
+          const input=document.querySelector(`[data-topic="${ci}"]`);
+          if(!input.value.trim()) return;
+          courses[ci].topics = courses[ci].topics||[];
+          courses[ci].topics.push({name:input.value, done:false});
+          input.value=''; save(); render();
+        };
       });
 
-      document.querySelectorAll('.status').forEach(sel=>sel.onchange=e=>{
-        const ci = e.target.dataset.ci;
-        courses[ci].status = e.target.value; save(); render();
+      document.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+        cb.onchange=e=>{
+          const {ci,ti}=e.target.dataset;
+          courses[ci].topics[ti].done=e.target.checked; save(); render();
+        };
       });
 
-      document.querySelectorAll('.topic-delete').forEach(btn=>btn.onclick=e=>{
-        const {ci,ti} = btn.dataset;
-        courses[ci].topics.splice(ti,1); save(); render();
+      document.querySelectorAll('.status').forEach(sel=>{
+        sel.onchange=e=>{
+          const ci=e.target.dataset.ci;
+          courses[ci].status=e.target.value; save(); render();
+        };
       });
     }
 
-    document.querySelectorAll('.toggle-topics').forEach(btn=>btn.onclick=e=>{
-      const ci = e.target.dataset.ci;
-      const section = document.querySelector(`.topic-section[data-ci="${ci}"]`);
-      section.classList.toggle('hidden');
-      e.target.textContent = section.classList.contains('hidden')?'▲':'▼';
+    document.querySelectorAll('.toggle-topics').forEach(btn=>{
+      btn.onclick=e=>{
+        const ci=e.target.dataset.ci;
+        const section=document.querySelector(`.topic-section[data-ci="${ci}"]`);
+        if(section.classList.contains('hidden')){
+          section.classList.remove('hidden');
+          e.target.textContent='▼';
+        } else {
+          section.classList.add('hidden');
+          e.target.textContent='▲';
+        }
+      };
     });
   }
 
-  addBtn.onclick = ()=>{
+  addBtn.onclick=()=>{
     if(isReadOnly) return;
-    const name = courseInput.value.trim();
+    const name=courseInput.value.trim();
     if(!name) return;
     courses.push({name,status:statusSelect.value,topics:[]});
     courseInput.value=''; save(); render();
   };
 
-  tabBtns.forEach(btn=>btn.onclick=e=>{
-    tabBtns.forEach(b=>b.classList.remove('active'));
-    e.target.classList.add('active');
-    currentTab=e.target.dataset.tab; render();
+  tabBtns.forEach(btn=>{
+    btn.onclick=e=>{
+      tabBtns.forEach(b=>b.classList.remove('active'));
+      e.target.classList.add('active');
+      currentTab=e.target.dataset.tab;
+      render();
+    };
   });
 
-  modeToggle.onclick = ()=>{
+  modeToggle.onclick=()=>{
     isReadOnly = !isReadOnly;
-    modeToggle.textContent = isReadOnly?'Switch to Write Mode':'Switch to Read-Only Mode';
+    modeToggle.textContent = isReadOnly ? 'Switch to Write Mode' : 'Switch to Read-Only Mode';
     render();
   };
 
-  exportBtn.onclick = ()=>{
-    const blob = new Blob([JSON.stringify(courses,null,2)],{type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'courses.json';
+  exportBtn.onclick=()=>{
+    const blob = new Blob([JSON.stringify(courses,null,2)], {type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='courses.json';
     a.click();
   };
 
-  importInput.onchange = e=>{
-    const file = e.target.files[0];
+  importInput.onchange=e=>{
+    const file=e.target.files[0];
     if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ()=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
       try{
-        const data = JSON.parse(reader.result);
-        if(!Array.isArray(data)) throw 'Invalid';
-        courses = data; save(); render();
+        const data=JSON.parse(reader.result);
+        if(!Array.isArray(data)) throw 'Invalid JSON';
+        courses=data; save(); render();
       }catch{
         alert('Invalid JSON file');
       }
