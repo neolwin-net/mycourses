@@ -8,6 +8,23 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+/* LOGIN */
+const loginScreen = document.getElementById("loginScreen");
+const password = document.getElementById("password");
+const loginBtn = document.getElementById("loginBtn");
+const error = document.getElementById("error");
+
+const ADMIN_PASSWORD = "1234";
+
+loginBtn.onclick = () => {
+  if (password.value === ADMIN_PASSWORD) {
+    loginScreen.style.display = "none";
+  } else {
+    error.textContent = "Wrong password";
+  }
+};
+
+/* UI */
 const courseName = document.getElementById("courseName");
 const courseStatus = document.getElementById("courseStatus");
 const coursesEl = document.getElementById("courses");
@@ -18,20 +35,13 @@ const learningEl = document.getElementById("learningCount");
 const notEl = document.getElementById("notCount");
 
 const addBtn = document.getElementById("addCourseBtn");
-const tabs = document.querySelectorAll(".tabs button");
 
 let currentTab = "all";
 let currentData = [];
 
 const coursesRef = collection(db, "courses");
 
-function calcProgress(course) {
-  if (course.status === "not-learned") return 0;
-  if (course.status === "learned") return 100;
-  if (!course.topics?.length) return 0;
-  return Math.round(course.topics.filter(t => t.done).length / course.topics.length * 100);
-}
-
+/* RENDER */
 function render(data) {
   coursesEl.innerHTML = "";
 
@@ -50,21 +60,22 @@ function render(data) {
         <option value="learned" ${c.status==="learned"?"selected":""}>Learned</option>
       </select>
 
-      <button data-id="${c.id}" class="delete">✖</button>
+      <button class="delete-course" data-id="${c.id}">🗑 Course</button>
 
-      <div>${calcProgress(c)}%</div>
-
-      ${c.status==="learning" ? `
+      <div>
         ${(c.topics||[]).map((t,i)=>`
-          <div>
-            <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
-            ${t.name}
+          <div class="topic-row">
+            <div>
+              <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
+              ${t.name}
+            </div>
+            <button class="delete-topic" data-id="${c.id}" data-i="${i}">🗑</button>
           </div>
         `).join("")}
+      </div>
 
-        <input data-topic="${c.id}" placeholder="New topic">
-        <button data-add="${c.id}">Add</button>
-      ` : ""}
+      <input data-topic="${c.id}" placeholder="New topic">
+      <button data-add="${c.id}">Add topic</button>
     `;
 
     coursesEl.appendChild(div);
@@ -74,6 +85,7 @@ function render(data) {
   updateSummary(data);
 }
 
+/* SUMMARY */
 function updateSummary(data) {
   totalEl.textContent = data.length;
   learnedEl.textContent = data.filter(c=>c.status==="learned").length;
@@ -81,77 +93,95 @@ function updateSummary(data) {
   notEl.textContent = data.filter(c=>c.status==="not-learned").length;
 }
 
+/* EVENTS */
 function bindEvents() {
 
-  document.querySelectorAll(".delete").forEach(btn => {
-    btn.onclick = async e => {
-      await deleteDoc(doc(db, "courses", e.target.dataset.id));
+  document.querySelectorAll(".delete-course").forEach(btn=>{
+    btn.onclick = async e=>{
+      await deleteDoc(doc(db,"courses",e.target.dataset.id));
     };
   });
 
-  document.querySelectorAll(".status").forEach(sel => {
-    sel.onchange = async e => {
-      await updateDoc(doc(db, "courses", e.target.dataset.id), {
-        status: e.target.value
-      });
-    };
-  });
-
-  document.querySelectorAll("input[type='checkbox']").forEach(cb => {
-    cb.onchange = async e => {
+  document.querySelectorAll(".delete-topic").forEach(btn=>{
+    btn.onclick = async e=>{
       const id = e.target.dataset.id;
       const i = e.target.dataset.i;
 
-      const course = currentData.find(c => c.id === id);
-      course.topics[i].done = e.target.checked;
+      const course = currentData.find(c=>c.id===id);
+      course.topics.splice(i,1);
 
-      await updateDoc(doc(db, "courses", id), {
+      await updateDoc(doc(db,"courses",id),{
         topics: course.topics
       });
     };
   });
 
-  document.querySelectorAll("[data-add]").forEach(btn => {
-    btn.onclick = async e => {
+  document.querySelectorAll(".status").forEach(sel=>{
+    sel.onchange = async e=>{
+      await updateDoc(doc(db,"courses",e.target.dataset.id),{
+        status:e.target.value
+      });
+    };
+  });
+
+  document.querySelectorAll("[data-add]").forEach(btn=>{
+    btn.onclick = async e=>{
       const id = e.target.dataset.add;
       const input = document.querySelector(`[data-topic="${id}"]`);
 
-      if (!input.value.trim()) return;
+      if(!input.value.trim()) return;
 
-      const course = currentData.find(c => c.id === id);
+      const course = currentData.find(c=>c.id===id);
       course.topics = course.topics || [];
-      course.topics.push({ name: input.value, done: false });
+      course.topics.push({name:input.value,done:false});
 
-      await updateDoc(doc(db, "courses", id), {
+      await updateDoc(doc(db,"courses",id),{
         topics: course.topics
       });
 
-      input.value = "";
+      input.value="";
+    };
+  });
+
+  document.querySelectorAll("input[type='checkbox']").forEach(cb=>{
+    cb.onchange = async e=>{
+      const id = e.target.dataset.id;
+      const i = e.target.dataset.i;
+
+      const course = currentData.find(c=>c.id===id);
+      course.topics[i].done = e.target.checked;
+
+      await updateDoc(doc(db,"courses",id),{
+        topics: course.topics
+      });
     };
   });
 }
 
-onSnapshot(coursesRef, snap => {
-  currentData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+/* REALTIME */
+onSnapshot(coursesRef,(snap)=>{
+  currentData = snap.docs.map(d=>({id:d.id,...d.data()}));
   render(currentData);
 });
 
-addBtn.onclick = async () => {
-  if (!courseName.value.trim()) return;
+/* ADD COURSE */
+addBtn.onclick = async ()=>{
+  if(!courseName.value.trim()) return;
 
-  await addDoc(coursesRef, {
-    name: courseName.value,
-    status: courseStatus.value,
-    topics: [],
-    createdAt: Date.now()
+  await addDoc(coursesRef,{
+    name:courseName.value,
+    status:courseStatus.value,
+    topics:[],
+    createdAt:Date.now()
   });
 
-  courseName.value = "";
+  courseName.value="";
 };
 
-tabs.forEach(t => {
-  t.onclick = () => {
-    tabs.forEach(x => x.classList.remove("active"));
+/* TABS */
+document.querySelectorAll(".tabs button").forEach(t=>{
+  t.onclick = ()=>{
+    document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
     t.classList.add("active");
     currentTab = t.dataset.tab;
     render(currentData);
