@@ -92,7 +92,7 @@ function render(data) {
       </div>
 
       <div class="status-line">
-        ${statusText(c, percent)}
+        ${Text}
       </div>
 
       <div class="progress">
