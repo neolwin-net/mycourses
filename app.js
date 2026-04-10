@@ -52,30 +52,36 @@ function render(data) {
     div.className = "course";
 
     div.innerHTML = `
-      <strong>${c.name}</strong>
+      <div class="course-header">
+        <strong>${c.name}</strong>
 
-      <select data-id="${c.id}" class="status">
-        <option value="not-learned" ${c.status==="not-learned"?"selected":""}>Need</option>
-        <option value="learning" ${c.status==="learning"?"selected":""}>Learning</option>
-        <option value="learned" ${c.status==="learned"?"selected":""}>Learned</option>
-      </select>
+        <div>
+          <select data-id="${c.id}" class="status">
+            <option value="not-learned" ${c.status==="not-learned"?"selected":""}>Need</option>
+            <option value="learning" ${c.status==="learning"?"selected":""}>Learning</option>
+            <option value="learned" ${c.status==="learned"?"selected":""}>Learned</option>
+          </select>
 
-      <button class="delete-course" data-id="${c.id}">🗑 Course</button>
+          <button class="delete-course small-btn" data-id="${c.id}">🗑</button>
+        </div>
+      </div>
 
-      <div>
+      <div class="topic-box">
         ${(c.topics||[]).map((t,i)=>`
           <div class="topic-row">
             <div>
               <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
               ${t.name}
             </div>
-            <button class="delete-topic" data-id="${c.id}" data-i="${i}">🗑</button>
+            <button class="delete-topic small-btn" data-id="${c.id}" data-i="${i}">✖</button>
           </div>
         `).join("")}
       </div>
 
-      <input data-topic="${c.id}" placeholder="New topic">
-      <button data-add="${c.id}">Add topic</button>
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <input data-topic="${c.id}" placeholder="New topic" style="flex:1;">
+        <button data-add="${c.id}">Add</button>
+      </div>
     `;
 
     coursesEl.appendChild(div);
