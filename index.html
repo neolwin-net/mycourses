@@ -29,14 +29,14 @@ header {
   font-weight:bold;
 }
 
-/* MAIN LAYOUT */
+/* MAIN */
 main {
   max-width:900px;
   margin:auto;
   padding:1rem;
 }
 
-/* LOGIN SCREEN */
+/* LOGIN */
 #loginScreen {
   position:fixed;
   inset:0;
@@ -46,7 +46,7 @@ main {
   justify-content:center;
   align-items:center;
   gap:10px;
-  z-index:99999;
+  z-index:9999;
 }
 
 /* INPUTS */
@@ -58,21 +58,14 @@ input, select, button {
   color:var(--text);
 }
 
-button {
-  cursor:pointer;
-}
+button { cursor:pointer; }
 
-/* ADD SECTION FIX */
+/* ADD SECTION */
 .add {
   display:flex;
   gap:10px;
   margin:1rem 0;
   flex-wrap:wrap;
-}
-
-.add input, .add select {
-  flex:1;
-  min-width:180px;
 }
 
 /* TABS */
@@ -105,32 +98,49 @@ button {
   margin-bottom:1rem;
 }
 
-/* CARDS */
+/* ===== CARD DESIGN (MAIN FIX) ===== */
 #courses {
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:14px;
 }
 
 .course {
   background:linear-gradient(145deg,#111827,#0b1220);
   border:1px solid #1f2933;
-  border-radius:16px;
+  border-radius:18px;
   padding:1rem;
   box-shadow:0 10px 25px rgba(0,0,0,0.35);
 }
 
-/* TOPIC ROW */
+/* COURSE HEADER */
+.course-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+/* TOPIC BOX */
+.topic-box {
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid #1f2933;
+}
+
+/* SINGLE TOPIC ROW */
 .topic-row {
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-top:6px;
+  padding:6px 0;
 }
 
-.topic-row button {
+/* BUTTON SMALL */
+.small-btn {
   padding:2px 8px;
   font-size:12px;
+  border-radius:6px;
 }
 </style>
 </head>
