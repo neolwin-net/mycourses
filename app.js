@@ -43,23 +43,20 @@ const coursesRef = collection(db, "courses");
 
 /* PROGRESS CALC */
 function progress(course) {
-  if (course.status === "not-learned") return 0;
-  if (course.status === "learned") return 100;
-
   const topics = course.topics || [];
+
   if (topics.length === 0) return 0;
 
   const done = topics.filter(t => t.done).length;
+
   return Math.round((done / topics.length) * 100);
 }
-
 /* STATUS TEXT */
-function statusText(course, percent) {
-  if (course.status === "learned") return "Completed ✔";
-  if (course.status === "not-learned") return "Not started";
-  return `${percent}% completed`;
+function statusText(percent) {
+  if (percent === 100) return "Completed ✔";
+  if (percent === 0) return "Not started";
+  return `${percent}% in progress`;
 }
-
 /* COLOR */
 function color(percent) {
   if (percent === 100) return "#22c55e";
