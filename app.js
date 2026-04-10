@@ -14,7 +14,7 @@ const password = document.getElementById("password");
 const loginBtn = document.getElementById("loginBtn");
 const error = document.getElementById("error");
 
-const ADMIN_PASSWORD = "1234";
+const ADMIN_PASSWORD = "root";
 
 loginBtn.onclick = () => {
   if (password.value === ADMIN_PASSWORD) {
