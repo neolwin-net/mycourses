@@ -14,7 +14,7 @@ const password = document.getElementById("password");
 const loginBtn = document.getElementById("loginBtn");
 const error = document.getElementById("error");
 
-const ADMIN_PASSWORD = "root";
+const ADMIN_PASSWORD = "1234";
 
 loginBtn.onclick = () => {
   if (password.value === ADMIN_PASSWORD) {
@@ -41,12 +41,40 @@ let currentData = [];
 
 const coursesRef = collection(db, "courses");
 
+/* PROGRESS CALC */
+function progress(course) {
+  if (course.status === "not-learned") return 0;
+  if (course.status === "learned") return 100;
+
+  const topics = course.topics || [];
+  if (topics.length === 0) return 0;
+
+  const done = topics.filter(t => t.done).length;
+  return Math.round((done / topics.length) * 100);
+}
+
+/* STATUS TEXT */
+function statusText(course, percent) {
+  if (course.status === "learned") return "Completed ✔";
+  if (course.status === "not-learned") return "Not started";
+  return `${percent}% completed`;
+}
+
+/* COLOR */
+function color(percent) {
+  if (percent === 100) return "#22c55e";
+  if (percent >= 50) return "#facc15";
+  return "#ef4444";
+}
+
 /* RENDER */
 function render(data) {
   coursesEl.innerHTML = "";
 
   data.forEach(c => {
     if (currentTab !== "all" && c.status !== currentTab) return;
+
+    const percent = progress(c);
 
     const div = document.createElement("div");
     div.className = "course";
@@ -62,8 +90,16 @@ function render(data) {
             <option value="learned" ${c.status==="learned"?"selected":""}>Learned</option>
           </select>
 
-          <button class="delete-course small-btn" data-id="${c.id}">🗑</button>
+          <button data-id="${c.id}" class="delete-course">🗑</button>
         </div>
+      </div>
+
+      <div class="status-line">
+        ${statusText(c, percent)}
+      </div>
+
+      <div class="progress">
+        <div class="progress-bar" style="width:${percent}%;background:${color(percent)}"></div>
       </div>
 
       <div class="topic-box">
@@ -73,12 +109,12 @@ function render(data) {
               <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
               ${t.name}
             </div>
-            <button class="delete-topic small-btn" data-id="${c.id}" data-i="${i}">✖</button>
+            <button data-id="${c.id}" data-i="${i}" class="delete-topic">✖</button>
           </div>
         `).join("")}
       </div>
 
-      <div style="margin-top:10px; display:flex; gap:8px;">
+      <div style="display:flex;gap:8px;margin-top:8px;">
         <input data-topic="${c.id}" placeholder="New topic" style="flex:1;">
         <button data-add="${c.id}">Add</button>
       </div>
