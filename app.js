@@ -92,7 +92,7 @@ function render(data) {
       </div>
 
       <div class="status-line">
-        ${Text}
+        ${text}
       </div>
 
       <div class="progress">
