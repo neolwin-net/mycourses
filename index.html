@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Course Tracker</title>
+<title>NEO's Courses</title>
 
 <style>
 :root {
@@ -157,20 +157,20 @@ button { cursor:pointer; }
 
 <!-- LOGIN -->
 <div id="loginScreen">
-  <h2>Admin Login</h2>
+  <h2>NEO LWIN's Login</h2>
   <input id="password" type="password" placeholder="Enter password">
   <button id="loginBtn">Login</button>
   <p id="error" style="color:red;"></p>
 </div>
 
-<header>📚 Course Tracker</header>
+<header>NEO LWIN's Course Tracker</header>
 
 <main>
 
   <div class="add">
     <input id="courseName" placeholder="Course name">
     <select id="courseStatus">
-      <option value="not-learned">Need to Learn</option>
+      <option value="not-learned">Need To Learn</option>
       <option value="learning">Learning</option>
       <option value="learned">Learned</option>
     </select>
@@ -180,7 +180,7 @@ button { cursor:pointer; }
   <div class="tabs">
     <button data-tab="all" class="active">All</button>
     <button data-tab="learning">Learning</button>
-    <button data-tab="not-learned">Need</button>
+    <button data-tab="not-learned">Need To Learn</button>
     <button data-tab="learned">Learned</button>
   </div>
 
@@ -188,13 +188,17 @@ button { cursor:pointer; }
     <div>Total <span id="total">0</span></div>
     <div>Learned <span id="learnedCount">0</span></div>
     <div>Learning <span id="learningCount">0</span></div>
-    <div>Need <span id="notCount">0</span></div>
+    <div>Need To Learn <span id="notCount">0</span></div>
   </div>
 
   <div id="courses"></div>
 
 </main>
-
+  
+<footer class="footer" style="text-align: center;">
+    <p>© 2026 NEO LWIN's Workstation</p>
+  </footer>
+  
 <script type="module" src="./app.js"></script>
 
 </body>
