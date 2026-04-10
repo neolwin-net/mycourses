@@ -8,94 +8,88 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const courseInput = document.getElementById('courseName');
-const statusSelect = document.getElementById('courseStatus');
-const coursesEl = document.getElementById('courses');
-const addBtn = document.getElementById('addCourseBtn');
+const courseName = document.getElementById("courseName");
+const courseStatus = document.getElementById("courseStatus");
+const coursesEl = document.getElementById("courses");
 
-const tabBtns = document.querySelectorAll('.tabs button');
+const totalEl = document.getElementById("total");
+const learnedEl = document.getElementById("learnedCount");
+const learningEl = document.getElementById("learningCount");
+const notEl = document.getElementById("notCount");
 
-const summaryEls = {
-  total: document.getElementById('total'),
-  learned: document.getElementById('learnedCount'),
-  learning: document.getElementById('learningCount'),
-  not: document.getElementById('notCount')
-};
+const addBtn = document.getElementById("addCourseBtn");
+const tabs = document.querySelectorAll(".tabs button");
 
-let currentTab = 'all';
-let isReadOnly = false;
+let currentTab = "all";
+let currentData = [];
 
 const coursesRef = collection(db, "courses");
 
-function progress(course) {
-  if (course.status === 'not-learned') return 0;
-  if (course.status === 'learned') return 100;
+function calcProgress(course) {
+  if (course.status === "not-learned") return 0;
+  if (course.status === "learned") return 100;
   if (!course.topics?.length) return 0;
   return Math.round(course.topics.filter(t => t.done).length / course.topics.length * 100);
 }
 
-function updateSummary(courses) {
-  summaryEls.total.textContent = courses.length;
-  summaryEls.learned.textContent = courses.filter(c => c.status === 'learned').length;
-  summaryEls.learning.textContent = courses.filter(c => c.status === 'learning').length;
-  summaryEls.not.textContent = courses.filter(c => c.status === 'not-learned').length;
-}
+function render(data) {
+  coursesEl.innerHTML = "";
 
-function render(courses) {
-  coursesEl.innerHTML = '';
+  data.forEach(c => {
+    if (currentTab !== "all" && c.status !== currentTab) return;
 
-  courses.forEach(c => {
-    if (currentTab !== 'all' && c.status !== currentTab) return;
+    const div = document.createElement("div");
+    div.className = "course";
 
-    const percent = progress(c);
+    div.innerHTML = `
+      <strong>${c.name}</strong>
 
-    const div = document.createElement('div');
-    div.className = 'course';
+      <select data-id="${c.id}" class="status">
+        <option value="not-learned" ${c.status==="not-learned"?"selected":""}>Need</option>
+        <option value="learning" ${c.status==="learning"?"selected":""}>Learning</option>
+        <option value="learned" ${c.status==="learned"?"selected":""}>Learned</option>
+      </select>
 
-    let html = `<strong>${c.name}</strong>`;
+      <button data-id="${c.id}" class="delete">✖</button>
 
-    html += `
-    <select data-id="${c.id}" class="status" ${isReadOnly?'disabled':''}>
-      <option value="not-learned" ${c.status==='not-learned'?'selected':''}>Need to Learn</option>
-      <option value="learning" ${c.status==='learning'?'selected':''}>Learning</option>
-      <option value="learned" ${c.status==='learned'?'selected':''}>Learned</option>
-    </select>`;
+      <div>${calcProgress(c)}%</div>
 
-    html += ` ${percent}%`;
+      ${c.status==="learning" ? `
+        ${(c.topics||[]).map((t,i)=>`
+          <div>
+            <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
+            ${t.name}
+          </div>
+        `).join("")}
 
-    html += ` <button data-id="${c.id}" class="delete-course">✖</button>`;
+        <input data-topic="${c.id}" placeholder="New topic">
+        <button data-add="${c.id}">Add</button>
+      ` : ""}
+    `;
 
-    if (c.status === 'learning') {
-      html += `<div>Topics:</div>`;
-
-      (c.topics || []).forEach((t, ti) => {
-        html += `
-        <div>
-          <input type="checkbox" data-id="${c.id}" data-ti="${ti}" ${t.done ? 'checked' : ''}>
-          ${t.name}
-        </div>`;
-      });
-
-      html += `
-      <input placeholder="New topic" data-topic="${c.id}">
-      <button data-add-topic="${c.id}">Add</button>`;
-    }
-
-    div.innerHTML = html;
     coursesEl.appendChild(div);
   });
 
   bindEvents();
+  updateSummary(data);
+}
+
+function updateSummary(data) {
+  totalEl.textContent = data.length;
+  learnedEl.textContent = data.filter(c=>c.status==="learned").length;
+  learningEl.textContent = data.filter(c=>c.status==="learning").length;
+  notEl.textContent = data.filter(c=>c.status==="not-learned").length;
 }
 
 function bindEvents() {
-  document.querySelectorAll('.delete-course').forEach(btn => {
+
+  document.querySelectorAll(".delete").forEach(btn => {
     btn.onclick = async e => {
       await deleteDoc(doc(db, "courses", e.target.dataset.id));
     };
   });
 
-  document.querySelectorAll('.status').forEach(sel => {
+  document.querySelectorAll(".status").forEach(sel => {
     sel.onchange = async e => {
       await updateDoc(doc(db, "courses", e.target.dataset.id), {
         status: e.target.value
@@ -103,68 +97,63 @@ function bindEvents() {
     };
   });
 
-  document.querySelectorAll('[data-add-topic]').forEach(btn => {
-    btn.onclick = async e => {
-      const id = e.target.dataset.addTopic;
-      const input = document.querySelector(`[data-topic="${id}"]`);
-      if (!input.value.trim()) return;
-
-      const course = currentCourses.find(c => c.id === id);
-      const topics = course.topics || [];
-
-      topics.push({ name: input.value, done: false });
-
-      await updateDoc(doc(db, "courses", id), { topics });
-
-      input.value = '';
-    };
-  });
-
-  document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+  document.querySelectorAll("input[type='checkbox']").forEach(cb => {
     cb.onchange = async e => {
-      const { id, ti } = e.target.dataset;
-      const course = currentCourses.find(c => c.id === id);
+      const id = e.target.dataset.id;
+      const i = e.target.dataset.i;
 
-      course.topics[ti].done = e.target.checked;
+      const course = currentData.find(c => c.id === id);
+      course.topics[i].done = e.target.checked;
 
       await updateDoc(doc(db, "courses", id), {
         topics: course.topics
       });
     };
   });
+
+  document.querySelectorAll("[data-add]").forEach(btn => {
+    btn.onclick = async e => {
+      const id = e.target.dataset.add;
+      const input = document.querySelector(`[data-topic="${id}"]`);
+
+      if (!input.value.trim()) return;
+
+      const course = currentData.find(c => c.id === id);
+      course.topics = course.topics || [];
+      course.topics.push({ name: input.value, done: false });
+
+      await updateDoc(doc(db, "courses", id), {
+        topics: course.topics
+      });
+
+      input.value = "";
+    };
+  });
 }
 
-let currentCourses = [];
-
-onSnapshot(coursesRef, snapshot => {
-  currentCourses = snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
-
-  render(currentCourses);
-  updateSummary(currentCourses);
+onSnapshot(coursesRef, snap => {
+  currentData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  render(currentData);
 });
 
 addBtn.onclick = async () => {
-  const name = courseInput.value.trim();
-  if (!name) return;
+  if (!courseName.value.trim()) return;
 
   await addDoc(coursesRef, {
-    name,
-    status: statusSelect.value,
+    name: courseName.value,
+    status: courseStatus.value,
     topics: [],
     createdAt: Date.now()
   });
 
-  courseInput.value = '';
+  courseName.value = "";
 };
 
-tabBtns.forEach(btn => {
-  btn.onclick = e => {
-    tabBtns.forEach(b => b.classList.remove('active'));
-    e.target.classList.add('active');
-    currentTab = e.target.dataset.tab;
-    render(currentCourses);
+tabs.forEach(t => {
+  t.onclick = () => {
+    tabs.forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    currentTab = t.dataset.tab;
+    render(currentData);
   };
 });
