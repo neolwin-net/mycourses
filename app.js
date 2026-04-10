@@ -72,7 +72,7 @@ function render(data) {
     if (currentTab !== "all" && c.status !== currentTab) return;
 
     const percent = progress(c);
-
+    const text = statusText(percent);
     const div = document.createElement("div");
     div.className = "course";
 
