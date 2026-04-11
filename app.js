@@ -72,13 +72,15 @@ function render(data) {
       </div>
 
       <div class="course-content">
-        ${(c.topics||[]).map((t,i)=>`
+      ${(c.topics||[]).map((t,i)=>`
+        <div class="topic-row">
           <div>
-            <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
-            ${t.name}
-          </div>
-        `).join("")}
-
+      <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
+      ${t.name}
+    </div>
+    <button data-id="${c.id}" data-i="${i}" class="delete-topic">✖</button>
+  </div>
+`).join("")}
         <input data-topic="${c.id}" placeholder="New topic">
         <button data-add="${c.id}">Add</button>
       </div>
