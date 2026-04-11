@@ -48,6 +48,11 @@ function render(data) {
   data.forEach(c => {
     if (currentTab !== "all" && c.status !== currentTab) return;
 
+    // ✅ PROGRESS CALCULATION
+    const total = (c.topics || []).length;
+    const done = (c.topics || []).filter(t => t.done).length;
+    const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+
     const div = document.createElement("div");
     div.className = "course" + (collapsedState[c.id] ? " collapsed" : "");
 
@@ -71,15 +76,30 @@ function render(data) {
       </div>
 
       <div class="course-content">
-      ${(c.topics || []).map((t,i)=>`
-        <div class="topic-row">
-          <div>
-            <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
-            ${t.name}
-          </div>
-          <button data-id="${c.id}" data-i="${i}" class="delete-topic">✖</button>
+
+        <!-- ✅ PROGRESS DISPLAY -->
+        <div class="status-line">
+          ${done}/${total} completed (${percent}%)
         </div>
-      `).join("")}
+
+        <div class="progress">
+          <div class="progress-bar" style="
+            width:${percent}%;
+            background:${percent===100 ? 'var(--good)' :
+                        percent>=50 ? 'var(--mid)' :
+                        'var(--bad)'}">
+          </div>
+        </div>
+
+        ${(c.topics||[]).map((t,i)=>`
+          <div class="topic-row">
+            <div>
+              <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
+              ${t.name}
+            </div>
+            <button data-id="${c.id}" data-i="${i}" class="delete-topic">✖</button>
+          </div>
+        `).join("")}
 
         <input data-topic="${c.id}" placeholder="New topic">
         <button data-add="${c.id}">Add</button>
@@ -95,7 +115,6 @@ function render(data) {
 /* EVENTS */
 function bindEvents() {
 
-  // COLLAPSE
   document.querySelectorAll(".toggleBtn").forEach(btn=>{
     btn.onclick = ()=>{
       const course = btn.closest(".course");
@@ -108,7 +127,6 @@ function bindEvents() {
     };
   });
 
-  // ADD TOPIC (SAFE)
   document.querySelectorAll("[data-add]").forEach(btn=>{
     btn.onclick = async e=>{
       const id = e.target.dataset.add;
@@ -132,7 +150,6 @@ function bindEvents() {
     };
   });
 
-  // CHECKBOX (SAFE)
   document.querySelectorAll("input[type='checkbox']").forEach(cb=>{
     cb.onchange = async e=>{
       const id = e.target.dataset.id;
@@ -151,7 +168,6 @@ function bindEvents() {
     };
   });
 
-  // DELETE TOPIC (SAFE)
   document.querySelectorAll(".delete-topic").forEach(btn=>{
     btn.onclick = async e=>{
       const id = e.target.dataset.id;
@@ -168,14 +184,12 @@ function bindEvents() {
     };
   });
 
-  // DELETE COURSE
   document.querySelectorAll(".delete-course").forEach(btn=>{
     btn.onclick = async e=>{
       await deleteDoc(doc(db,"courses",e.target.dataset.id));
     };
   });
 
-  // STATUS CHANGE
   document.querySelectorAll(".status").forEach(sel=>{
     sel.onchange = async e=>{
       await updateDoc(doc(db,"courses",e.target.dataset.id),{
