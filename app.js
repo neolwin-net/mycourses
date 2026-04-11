@@ -24,7 +24,6 @@ loginBtn.onclick = () => {
   }
 };
 
-/* ENTER KEY */
 password.addEventListener("keydown", (e) => {
   if (e.key === "Enter") loginBtn.click();
 });
@@ -72,15 +71,16 @@ function render(data) {
       </div>
 
       <div class="course-content">
-      ${(c.topics||[]).map((t,i)=>`
+      ${(c.topics || []).map((t,i)=>`
         <div class="topic-row">
           <div>
-      <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
-      ${t.name}
-    </div>
-    <button data-id="${c.id}" data-i="${i}" class="delete-topic">✖</button>
-  </div>
-`).join("")}
+            <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
+            ${t.name}
+          </div>
+          <button data-id="${c.id}" data-i="${i}" class="delete-topic">✖</button>
+        </div>
+      `).join("")}
+
         <input data-topic="${c.id}" placeholder="New topic">
         <button data-add="${c.id}">Add</button>
       </div>
@@ -95,6 +95,7 @@ function render(data) {
 /* EVENTS */
 function bindEvents() {
 
+  // COLLAPSE
   document.querySelectorAll(".toggleBtn").forEach(btn=>{
     btn.onclick = ()=>{
       const course = btn.closest(".course");
@@ -107,6 +108,7 @@ function bindEvents() {
     };
   });
 
+  // ADD TOPIC (SAFE)
   document.querySelectorAll("[data-add]").forEach(btn=>{
     btn.onclick = async e=>{
       const id = e.target.dataset.add;
@@ -115,47 +117,65 @@ function bindEvents() {
       if(!input.value.trim()) return;
 
       const course = currentData.find(c=>c.id===id);
-      course.topics.push({name:input.value,done:false});
+      if (!course) return;
 
-      await updateDoc(doc(db,"courses",id),{topics:course.topics});
+      const newTopics = [...(course.topics || []), {
+        name: input.value,
+        done: false
+      }];
+
+      await updateDoc(doc(db,"courses",id),{
+        topics: newTopics
+      });
+
       input.value="";
     };
   });
 
+  // CHECKBOX (SAFE)
   document.querySelectorAll("input[type='checkbox']").forEach(cb=>{
     cb.onchange = async e=>{
       const id = e.target.dataset.id;
-      const i = e.target.dataset.i;
+      const i = parseInt(e.target.dataset.i);
 
       const course = currentData.find(c=>c.id===id);
-      course.topics[i].done = e.target.checked;
+      if (!course || !course.topics || !course.topics[i]) return;
 
-      await updateDoc(doc(db,"courses",id),{topics:course.topics});
+      const newTopics = course.topics.map((t, index) =>
+        index === i ? { ...t, done: e.target.checked } : t
+      );
+
+      await updateDoc(doc(db,"courses",id),{
+        topics: newTopics
+      });
     };
   });
+
+  // DELETE TOPIC (SAFE)
   document.querySelectorAll(".delete-topic").forEach(btn=>{
-  btn.onclick = async e=>{
-    const id = e.target.dataset.id;
-    const i = parseInt(e.target.dataset.i);
+    btn.onclick = async e=>{
+      const id = e.target.dataset.id;
+      const i = parseInt(e.target.dataset.i);
 
-    const course = currentData.find(c=>c.id===id);
+      const course = currentData.find(c=>c.id===id);
+      if (!course || !course.topics) return;
 
-    if (!course || !course.topics) return;
+      const newTopics = course.topics.filter((_, index) => index !== i);
 
-    // Remove the topic safely
-    course.topics.splice(i, 1);
+      await updateDoc(doc(db, "courses", id), {
+        topics: newTopics
+      });
+    };
+  });
 
-    await updateDoc(doc(db, "courses", id), {
-      topics: course.topics
-    });
-  };
-});
+  // DELETE COURSE
   document.querySelectorAll(".delete-course").forEach(btn=>{
     btn.onclick = async e=>{
       await deleteDoc(doc(db,"courses",e.target.dataset.id));
     };
   });
 
+  // STATUS CHANGE
   document.querySelectorAll(".status").forEach(sel=>{
     sel.onchange = async e=>{
       await updateDoc(doc(db,"courses",e.target.dataset.id),{
