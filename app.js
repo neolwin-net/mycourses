@@ -133,7 +133,23 @@ function bindEvents() {
       await updateDoc(doc(db,"courses",id),{topics:course.topics});
     };
   });
+  document.querySelectorAll(".delete-topic").forEach(btn=>{
+  btn.onclick = async e=>{
+    const id = e.target.dataset.id;
+    const i = parseInt(e.target.dataset.i);
 
+    const course = currentData.find(c=>c.id===id);
+
+    if (!course || !course.topics) return;
+
+    // Remove the topic safely
+    course.topics.splice(i, 1);
+
+    await updateDoc(doc(db, "courses", id), {
+      topics: course.topics
+    });
+  };
+});
   document.querySelectorAll(".delete-course").forEach(btn=>{
     btn.onclick = async e=>{
       await deleteDoc(doc(db,"courses",e.target.dataset.id));
