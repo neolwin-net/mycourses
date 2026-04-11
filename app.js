@@ -41,6 +41,20 @@ const courseName = document.getElementById("courseName");
 const courseStatus = document.getElementById("courseStatus");
 const addBtn = document.getElementById("addCourseBtn");
 
+/* ✅ SUMMARY FUNCTION (ADDED) */
+function updateSummary(data) {
+  const total = data.length;
+
+  const learned = data.filter(c => c.status === "learned").length;
+  const learning = data.filter(c => c.status === "learning").length;
+  const notLearned = data.filter(c => c.status === "not-learned").length;
+
+  document.getElementById("total").innerText = total;
+  document.getElementById("learnedCount").innerText = learned;
+  document.getElementById("learningCount").innerText = learning;
+  document.getElementById("notCount").innerText = notLearned;
+}
+
 /* RENDER */
 function render(data) {
   coursesEl.innerHTML = "";
@@ -48,7 +62,6 @@ function render(data) {
   data.forEach(c => {
     if (currentTab !== "all" && c.status !== currentTab) return;
 
-    // ✅ PROGRESS CALCULATION
     const total = (c.topics || []).length;
     const done = (c.topics || []).filter(t => t.done).length;
     const percent = total === 0 ? 0 : Math.round((done / total) * 100);
@@ -77,7 +90,6 @@ function render(data) {
 
       <div class="course-content">
 
-        <!-- ✅ PROGRESS DISPLAY -->
         <div class="status-line">
           ${done}/${total} completed (${percent}%)
         </div>
@@ -202,7 +214,9 @@ function bindEvents() {
 /* REALTIME */
 onSnapshot(coursesRef,(snap)=>{
   currentData = snap.docs.map(d=>({id:d.id,...d.data()}));
+
   render(currentData);
+  updateSummary(currentData); // ✅ FIXED
 });
 
 /* ADD COURSE */
