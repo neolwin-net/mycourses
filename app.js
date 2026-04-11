@@ -24,45 +24,23 @@ loginBtn.onclick = () => {
   }
 };
 
-/* UI */
-const courseName = document.getElementById("courseName");
-const courseStatus = document.getElementById("courseStatus");
-const coursesEl = document.getElementById("courses");
+/* ENTER KEY */
+password.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") loginBtn.click();
+});
 
-const totalEl = document.getElementById("total");
-const learnedEl = document.getElementById("learnedCount");
-const learningEl = document.getElementById("learningCount");
-const notEl = document.getElementById("notCount");
-
-const addBtn = document.getElementById("addCourseBtn");
-
-let currentTab = "all";
+/* STATE */
+let collapsedState = {};
 let currentData = [];
+let currentTab = "all";
 
 const coursesRef = collection(db, "courses");
 
-/* PROGRESS CALC */
-function progress(course) {
-  const topics = course.topics || [];
-
-  if (topics.length === 0) return 0;
-
-  const done = topics.filter(t => t.done).length;
-
-  return Math.round((done / topics.length) * 100);
-}
-/* STATUS TEXT */
-function statusText(percent) {
-  if (percent === 100) return "Completed ✔";
-  if (percent === 0) return "Not started";
-  return `${percent}% in progress`;
-}
-/* COLOR */
-function color(percent) {
-  if (percent === 100) return "#22c55e";
-  if (percent >= 50) return "#facc15";
-  return "#ef4444";
-}
+/* UI */
+const coursesEl = document.getElementById("courses");
+const courseName = document.getElementById("courseName");
+const courseStatus = document.getElementById("courseStatus");
+const addBtn = document.getElementById("addCourseBtn");
 
 /* RENDER */
 function render(data) {
@@ -71,16 +49,18 @@ function render(data) {
   data.forEach(c => {
     if (currentTab !== "all" && c.status !== currentTab) return;
 
-    const percent = progress(c);
-    const text = statusText(percent);
     const div = document.createElement("div");
-    div.className = "course";
+    div.className = "course" + (collapsedState[c.id] ? " collapsed" : "");
 
     div.innerHTML = `
       <div class="course-header">
         <strong>${c.name}</strong>
 
         <div>
+          <button class="toggleBtn">
+            ${collapsedState[c.id] ? "+" : "−"}
+          </button>
+
           <select data-id="${c.id}" class="status">
             <option value="not-learned" ${c.status==="not-learned"?"selected":""}>Need</option>
             <option value="learning" ${c.status==="learning"?"selected":""}>Learning</option>
@@ -91,28 +71,15 @@ function render(data) {
         </div>
       </div>
 
-      <div class="status-line">
-        ${text}
-      </div>
-
-      <div class="progress">
-        <div class="progress-bar" style="width:${percent}%;background:${color(percent)}"></div>
-      </div>
-
-      <div class="topic-box">
+      <div class="course-content">
         ${(c.topics||[]).map((t,i)=>`
-          <div class="topic-row">
-            <div>
-              <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
-              ${t.name}
-            </div>
-            <button data-id="${c.id}" data-i="${i}" class="delete-topic">✖</button>
+          <div>
+            <input type="checkbox" data-id="${c.id}" data-i="${i}" ${t.done?"checked":""}>
+            ${t.name}
           </div>
         `).join("")}
-      </div>
 
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <input data-topic="${c.id}" placeholder="New topic" style="flex:1;">
+        <input data-topic="${c.id}" placeholder="New topic">
         <button data-add="${c.id}">Add</button>
       </div>
     `;
@@ -121,45 +88,20 @@ function render(data) {
   });
 
   bindEvents();
-  updateSummary(data);
-}
-
-/* SUMMARY */
-function updateSummary(data) {
-  totalEl.textContent = data.length;
-  learnedEl.textContent = data.filter(c=>c.status==="learned").length;
-  learningEl.textContent = data.filter(c=>c.status==="learning").length;
-  notEl.textContent = data.filter(c=>c.status==="not-learned").length;
 }
 
 /* EVENTS */
 function bindEvents() {
 
-  document.querySelectorAll(".delete-course").forEach(btn=>{
-    btn.onclick = async e=>{
-      await deleteDoc(doc(db,"courses",e.target.dataset.id));
-    };
-  });
+  document.querySelectorAll(".toggleBtn").forEach(btn=>{
+    btn.onclick = ()=>{
+      const course = btn.closest(".course");
+      const id = course.querySelector(".status").dataset.id;
 
-  document.querySelectorAll(".delete-topic").forEach(btn=>{
-    btn.onclick = async e=>{
-      const id = e.target.dataset.id;
-      const i = e.target.dataset.i;
+      collapsedState[id] = !collapsedState[id];
+      course.classList.toggle("collapsed");
 
-      const course = currentData.find(c=>c.id===id);
-      course.topics.splice(i,1);
-
-      await updateDoc(doc(db,"courses",id),{
-        topics: course.topics
-      });
-    };
-  });
-
-  document.querySelectorAll(".status").forEach(sel=>{
-    sel.onchange = async e=>{
-      await updateDoc(doc(db,"courses",e.target.dataset.id),{
-        status:e.target.value
-      });
+      btn.textContent = collapsedState[id] ? "+" : "−";
     };
   });
 
@@ -171,13 +113,9 @@ function bindEvents() {
       if(!input.value.trim()) return;
 
       const course = currentData.find(c=>c.id===id);
-      course.topics = course.topics || [];
       course.topics.push({name:input.value,done:false});
 
-      await updateDoc(doc(db,"courses",id),{
-        topics: course.topics
-      });
-
+      await updateDoc(doc(db,"courses",id),{topics:course.topics});
       input.value="";
     };
   });
@@ -190,8 +128,20 @@ function bindEvents() {
       const course = currentData.find(c=>c.id===id);
       course.topics[i].done = e.target.checked;
 
-      await updateDoc(doc(db,"courses",id),{
-        topics: course.topics
+      await updateDoc(doc(db,"courses",id),{topics:course.topics});
+    };
+  });
+
+  document.querySelectorAll(".delete-course").forEach(btn=>{
+    btn.onclick = async e=>{
+      await deleteDoc(doc(db,"courses",e.target.dataset.id));
+    };
+  });
+
+  document.querySelectorAll(".status").forEach(sel=>{
+    sel.onchange = async e=>{
+      await updateDoc(doc(db,"courses",e.target.dataset.id),{
+        status:e.target.value
       });
     };
   });
@@ -210,8 +160,7 @@ addBtn.onclick = async ()=>{
   await addDoc(coursesRef,{
     name:courseName.value,
     status:courseStatus.value,
-    topics:[],
-    createdAt:Date.now()
+    topics:[]
   });
 
   courseName.value="";
