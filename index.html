@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Love QR</title>
 
-  <!-- Romantic Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
 
   <style>
     * {
@@ -17,79 +18,70 @@
     }
 
     body {
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
-      align-items: center;
+      flex-direction: column;
       justify-content: center;
+      align-items: center;
       background: linear-gradient(135deg, #ff9a9e, #fad0c4);
       overflow: hidden;
+      padding: 20px;
     }
 
     /* Floating hearts */
     .heart {
       position: absolute;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 20px;
-      animation: float 6s linear infinite;
+      color: rgba(255,255,255,0.6);
+      font-size: 18px;
+      animation: float 7s linear infinite;
     }
 
     @keyframes float {
-      0% {
-        transform: translateY(100vh) scale(0.5);
-        opacity: 0;
-      }
-      50% {
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-10vh) scale(1.2);
-        opacity: 0;
-      }
+      0% { transform: translateY(100vh); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translateY(-10vh); opacity: 0; }
     }
 
+    /* Card */
     .card {
-      background: rgba(255, 255, 255, 0.9);
-      padding: 50px 70px;
+      background: rgba(255,255,255,0.92);
+      padding: 40px 25px;
       border-radius: 25px;
       box-shadow: 0 15px 40px rgba(0,0,0,0.2);
       text-align: center;
-      backdrop-filter: blur(10px);
+      width: 100%;
+      max-width: 400px;
       animation: fadeIn 0.8s ease;
+      backdrop-filter: blur(10px);
     }
 
     .title {
       font-family: 'Great Vibes', cursive;
-      font-size: 36px;
+      font-size: 34px;
       color: #ff4d6d;
       margin-bottom: 10px;
     }
 
     .text {
-      font-size: 38px;
+      font-size: 28px;
       font-weight: 500;
       color: #333;
-      margin-top: 10px;
       word-break: break-word;
+      margin-top: 10px;
     }
 
- .footer {
-  position: fixed;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 14px;
-  color: #999;
-   }
-
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: scale(0.9);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Footer (mobile-safe) */
+    .footer {
+      margin-top: auto;
+      padding: 15px;
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255,255,255,0.85);
     }
   </style>
 </head>
@@ -98,16 +90,20 @@
 
   <!-- Floating hearts -->
   <div class="heart" style="left:10%">❤</div>
-  <div class="heart" style="left:30%; animation-delay:2s;">❤</div>
+  <div class="heart" style="left:25%; animation-delay:2s;">❤</div>
   <div class="heart" style="left:50%; animation-delay:4s;">❤</div>
   <div class="heart" style="left:70%; animation-delay:1s;">❤</div>
-  <div class="heart" style="left:90%; animation-delay:3s;">❤</div>
+  <div class="heart" style="left:85%; animation-delay:3s;">❤</div>
 
+  <!-- Main card -->
   <div class="card">
     <div class="title">💕 Love Message 💕</div>
     <div id="output" class="text">Loading...</div>
     <div class="footer">Made By LKA with ❤️</div>
   </div>
+
+  <!-- Footer -->
+  <div class="footer">©2026 NEO LWIN PROJECTS</div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -121,6 +117,6 @@
       output.innerText = "SU NADI PHYOE SITT ❤️";
     }
   </script>
-<p class="footer">©2026 NEO LWIN PROJECTS</p>
+
 </body>
 </html>
