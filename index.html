@@ -72,11 +72,14 @@
       word-break: break-word;
     }
 
-    .footer {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #999;
-    }
+ .footer {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: #999;
+   }
 
     @keyframes fadeIn {
       from {
@@ -118,6 +121,6 @@
       output.innerText = "SU NADI PHYOE SITT ❤️";
     }
   </script>
-<p style="text-align:center;">©2026 NEO LWIN PROJECTS.</p> 
+<p class="footer">©2026 NEO LWIN PROJECTS</p>
 </body>
 </html>
